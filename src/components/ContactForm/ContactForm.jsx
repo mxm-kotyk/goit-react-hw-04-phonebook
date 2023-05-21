@@ -1,4 +1,4 @@
-import { Formik, ErrorMessage } from 'formik';
+import { useFormik } from 'formik';
 import * as yup from 'yup';
 import PropTypes from 'prop-types';
 import uniqid from 'uniqid';
@@ -12,11 +12,6 @@ import {
   ErrorText,
   AddButton,
 } from './ContactForm.styled';
-
-const initialState = {
-  name: '',
-  number: '',
-};
 
 const validationSchema = yup.object({
   name: yup
@@ -35,23 +30,21 @@ const validationSchema = yup.object({
     ),
 });
 
-const FormError = ({ name }) => {
-  return (
-    <ErrorMessage
-      name={name}
-      render={message => <ErrorText>{message}</ErrorText>}
-    />
-  );
-};
-
 export const ContactForm = ({ onSubmit, contacts }) => {
-  const handleSubmit = (values, actions) => {
-    actions.resetForm();
-    const { name, number } = values;
+  const formik = useFormik({
+    initialValues: { name: '', number: '' },
+    onSubmit: ({ name, number }) => handleSubmit(name, number),
+    validationSchema,
+  });
 
+  const handleSubmit = (name, number) => {
+    formik.resetForm();
     if (contacts.some(contact => contact.name.includes(name))) {
-      Report.info(`${name} is already in contacts`, '', 'OK', {
+      Report.warning(`${name} is already in contacts`, '', 'OK', {
         backOverlayClickToClose: true,
+        backOverlayColor: 'rgba(199,87,21,0.2)',
+        buttonBackground: '#C75715',
+        svgColor: '#C75715',
       });
       return;
     }
@@ -63,39 +56,43 @@ export const ContactForm = ({ onSubmit, contacts }) => {
   const numberInputId = uniqid();
   return (
     <div>
-      <Formik
-        initialValues={initialState}
-        onSubmit={handleSubmit}
-        validationSchema={validationSchema}
-      >
-        <StyledForm>
-          <FieldWrapper>
-            <StyledField
-              type="text"
-              name="name"
-              id={nameInputId}
-              required
-              placeholder="."
-              className="styled-input"
-            />
-            <Label htmlFor={nameInputId}>Name</Label>
-            <FormError name="name" />
-          </FieldWrapper>
-          <FieldWrapper>
-            <StyledField
-              type="tel"
-              name="number"
-              id={numberInputId}
-              required
-              placeholder="."
-              className="styled-input"
-            />
-            <Label htmlFor={numberInputId}>Number</Label>
-            <FormError name="number" />
-          </FieldWrapper>
-          <AddButton type="submit">Add contact</AddButton>
-        </StyledForm>
-      </Formik>
+      <StyledForm onSubmit={formik.handleSubmit}>
+        <FieldWrapper>
+          <StyledField
+            type="text"
+            name="name"
+            id={nameInputId}
+            required
+            placeholder="."
+            className="styled-input"
+            onBlur={formik.handleBlur}
+            onChange={formik.handleChange}
+            value={formik.values.name}
+          />
+          <Label htmlFor={nameInputId}>Name</Label>
+          {formik.touched.name && formik.errors.name && (
+            <ErrorText>{formik.errors.name}</ErrorText>
+          )}
+        </FieldWrapper>
+        <FieldWrapper>
+          <StyledField
+            type="tel"
+            name="number"
+            id={numberInputId}
+            required
+            placeholder="."
+            className="styled-input"
+            onBlur={formik.handleBlur}
+            onChange={formik.handleChange}
+            value={formik.values.number}
+          />
+          <Label htmlFor={numberInputId}>Number</Label>
+          {formik.touched.number && formik.errors.number && (
+            <ErrorText>{formik.errors.number}</ErrorText>
+          )}
+        </FieldWrapper>
+        <AddButton type="submit">Add contact</AddButton>
+      </StyledForm>
     </div>
   );
 };
